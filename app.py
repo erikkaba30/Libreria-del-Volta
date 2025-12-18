@@ -1,11 +1,10 @@
 from flask import Flask, render_template, request, redirect
 import sqlite3
 import random
-import os
 
 app = Flask(__name__)
 
-DB_PATH = os.environ.get('DISK_PATH', '.') + '/libreria.db'
+DB_PATH = '/tmp/libreria.db'
 
 def init_db():
     """Crea la tabella nel database se non esiste già"""
@@ -50,4 +49,5 @@ def aggiungi():
 if __name__ == '__main__':
     init_db()
     # '0.0.0.0' serve per rendere l'app visibile agli altri dispositivi in rete
+
     app.run(debug=True, host='0.0.0.0', port=5000)
