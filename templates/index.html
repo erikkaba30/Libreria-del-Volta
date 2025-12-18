@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Libreria del Volta</title>
+    <style>
+      /* Layout flessibile per spingere il contenuto verso il basso */
+        body, html { 
+            height: 100%; 
+            margin: 0; 
+            background-color: #1a1a1a; 
+            font-family: 'Georgia', serif; 
+            display: flex;
+            flex-direction: column;
+            overflow: hidden; 
+        }
+
+        h1 { color: #d7ccc8; text-align: center; margin-top: 30px; text-shadow: 2px 2px 4px #000; }
+
+        /* Contenitore Scaffale - align-items: flex-end lo spinge in basso */
+        .shelf-container {
+            flex: 1;
+            perspective: 1000px;
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: flex-end; 
+            padding-bottom: 120px; /* Distanza dal bordo inferiore */
+        }
+
+	.shelf {
+            width: 100%;
+            max-width: 950px;
+            background: #211517;
+            height: 20px;
+            position: relative;
+            display: flex;
+            align-items: flex-end;
+            padding: 0 20px;
+            box-shadow: 0 15px 40px rgba(0,0,0,0.7);
+        }
+
+        /* Parete posteriore (schienale) della libreria */
+        .shelf::before {
+            content: '';
+            position: absolute;
+            bottom: 20px;
+            left: 10px;
+            width: 98%;
+            height: 250px;
+            background: #211515;
+            border-radius: 45px 45px 0 0;
+            z-index: -1;
+            box-shadow: inset 0 0 50px rgba(0,0,0,0.5);
+        }
+
+
+        /* Il Libro 3D */
+        .book {
+            position: relative;
+            width: 35px;
+            height: 200px;
+            margin-right: 4px;
+            transform-style: preserve-3d;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            cursor: pointer;
+            bottom: 20px; /* Appoggiato sopra lo scaffale */
+        }
+
+        /* Dorso del libro (quello che vedi) */
+        .spine {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background: #ccc;
+            border-radius: 3px 3px 3px 3px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            writing-mode: vertical-rl;
+            text-orientation: mixed;
+            font-weight: bold;
+            color: black; /* Scritta Nera */
+            font-size: 15px;
+            box-sizing: border-box;
+            padding: 10px 0;
+	    border-left: 2px solid rgba(0,0,0,0.1);
+            box-shadow: inset -3px 0 5px rgba(0,0,0,0.2);
+            white-space: nowrap; /* Non taglia il testo */
+        }
+
+        .book:hover {
+            transform: translateZ(-30px) translateY(15px) rotateZ(2deg);
+            z-index: 10;
+        }
+
+        /* Pulsante in basso */
+        .btn-add {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 15px 40px;
+            background: #8d6e63;
+            color: white;
+            border: 2px solid #d7ccc8;
+            border-radius: 50px;
+            font-size: 18px;
+            cursor: pointer;
+            z-index: 100;
+            transition: 0.3s;
+        }
+
+        .btn-add:hover { background: #6d4c41; box-shadow: 0 0 15px #d7ccc8; }
+
+        /* Modale Stile Libro Aperto */
+        .overlay { display: none; position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index: 200; }
+        
+        .book-open {
+            display: none;
+            position: fixed;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            width: 600px;
+            height: 400px;
+            background: #fff9e6;
+            z-index: 300;
+            padding: 50px;
+            box-shadow: 20px 20px 60px rgba(0,0,0,0.5);
+            background-image: linear-gradient(to right, #a08679 0%, #fff9e6 5%, #fff9e6 95%, #a08679 100%);
+            border-radius: 5px;
+        }
+
+        .book-open h2 { border-bottom: 2px solid #8d6e63; padding-bottom: 10px; color: #3e2723; }
+        .book-content { font-size: 18px; line-height: 1.6; color: #5d4037; margin-top: 20px; }
+
+        .form-container {
+            display: none;
+            position: fixed;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            background: #3e2723;
+            padding: 30px;
+            border: 5px solid #8d6e63;
+            z-index: 400;
+            color: white;
+            width: 300px;
+        }
+
+        input, textarea { width: 100%; margin-bottom: 15px; padding: 8px; box-sizing: border-box; }
+    </style>
+</head>
+<body>
+
+    <h1>La Nostra Biblioteca 📚</h1>
+
+    <div class="shelf-container">
+        <div class="shelf">
+            {% for libro in libri %}
+            <div class="book" onclick="apriLibro('{{ libro.titolo }}', '{{ libro.autore }}', '{{ libro.descrizione }}')">
+                <div class="spine" style="background-color: {{ libro.colore }};">
+                    {{ libro.titolo }}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <button class="btn-add" onclick="mostraForm()">+ AGGIUNGI CONSIGLIO</button>
+
+    <div id="overlay" class="overlay" onclick="chiudiTutto()"></div>
+
+    <div id="form-modal" class="form-container">
+        <h3>Nuovo Libro</h3>
+        <form action="/aggiungi" method="post">
+            <input type="text" name="titolo" placeholder="Titolo" required>
+            <input type="text" name="autore" placeholder="Autore" required>
+            <textarea name="descrizione" placeholder="Perché leggerlo?" rows="4"></textarea>
+            <button type="submit" style="width:100%; padding:10px; background:#8d6e63; color:white; border:none; cursor:pointer;">Metti nello scaffale</button>
+        </form>
+    </div>
+
+    <div id="book-modal" class="book-open">
+        <h2 id="view-titolo"></h2>
+        <h4 id="view-autore" style="color: #795548;"></h4>
+        <div class="book-content" id="view-descrizione"></div>
+        <button onclick="chiudiTutto()" style="margin-top: 30px; cursor:pointer;">Chiudi Libro</button>
+    </div>
+
+    <script>
+        function mostraForm() {
+            document.getElementById('overlay').style.display = 'block';
+            document.getElementById('form-modal').style.display = 'block';
+        }
+
+        function apriLibro(t, a, d) {
+            document.getElementById('view-titolo').innerText = t;
+            document.getElementById('view-autore').innerText = "Scritto da: " + a;
+            document.getElementById('view-descrizione').innerText = d;
+            document.getElementById('overlay').style.display = 'block';
+            document.getElementById('book-modal').style.display = 'block';
+        }
+
+        function chiudiTutto() {
+            document.getElementById('overlay').style.display = 'none';
+            document.getElementById('form-modal').style.display = 'none';
+            document.getElementById('book-modal').style.display = 'none';
+        }
+    </script>
+</body>
+</html>
